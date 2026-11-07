@@ -1,0 +1,27 @@
+# Python
+venv/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.coverage
+
+# Node
+node_modules/
+dist/
+
+# Env / secrets
+.env
+.env.local
+
+# Databases / vector stores
+*.db
+*.db-journal
+chroma/
+
+# OS / editor
+.DS_Store
+*.swp
+.vscode/
+.idea/

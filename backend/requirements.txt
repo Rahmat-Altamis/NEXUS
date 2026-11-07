@@ -1,0 +1,16 @@
+fastapi
+uvicorn
+pydantic
+sqlalchemy
+python-multipart
+pyjwt
+cryptography
+pytest
+httpx
+
+# Optional: vector store (used only when EMBEDDING_PROVIDER=chroma)
+# chromadb
+
+# Optional: document parsing (code must fall back gracefully when absent)
+# pypdf
+# python-docx

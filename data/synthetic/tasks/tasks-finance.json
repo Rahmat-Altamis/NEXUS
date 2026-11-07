@@ -1,0 +1,5 @@
+[
+  {"id": "FIN-A", "title": "Selesaikan rekonsiliasi kas kecil periode berjalan", "status": "berjalan", "assignee": "dewi", "due_date": "2026-04-30"},
+  {"id": "FIN-B", "title": "Verifikasi faktur vendor sebelum pencairan dana", "status": "menunggu", "assignee": "dewi", "due_date": "2026-05-05"},
+  {"id": "FIN-C", "title": "Siapkan bahan audit internal semester berjalan", "status": "menunggu", "assignee": "dewi", "due_date": "2026-05-20"}
+]

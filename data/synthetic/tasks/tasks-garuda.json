@@ -1,0 +1,6 @@
+[
+  {"id": "GRD-A", "title": "Proyek Garuda milestone Fase Satu selesaikan desain arsitektur", "status": "selesai", "assignee": "siti", "due_date": "2026-04-03"},
+  {"id": "GRD-B", "title": "Proyek Garuda milestone Fase Dua bangun purwarupa layanan", "status": "berjalan", "assignee": "siti", "due_date": "2026-05-02"},
+  {"id": "GRD-C", "title": "Proyek Garuda milestone Fase Dua selesaikan bantuan integrasi", "status": "berjalan", "assignee": "budi", "due_date": "2026-05-09"},
+  {"id": "GRD-D", "title": "Proyek Garuda milestone Fase Tiga siapkan uji coba terbatas", "status": "menunggu", "assignee": "budi", "due_date": "2026-06-01"}
+]

@@ -1,0 +1,10 @@
+Catatan Arsip Dokumen (SYNTHETIC)
+
+Nusantara Digital Group — dokumen fiktif untuk pengujian. Seluruh isi sintetis.
+
+CATATAN FORMAT: Pustaka pypdf dan python-docx tidak tersedia pada lingkungan
+pengujian ini, sehingga arsip yang semula berbentuk PDF dan DOCX disediakan
+sebagai padanan TXT. Isi dokumen tetap sama dan dapat ditelusur kembali.
+
+Arsip kebijakan disimpan oleh tim administrasi dan dapat diminta kembali
+melalui formulir permintaan arsip yang tersedia di lobi utama.
