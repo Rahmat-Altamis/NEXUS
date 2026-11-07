@@ -32,6 +32,7 @@ SYSTEM_PROMPT = """You are NEXUS, a corporate knowledge assistant. Rules:
 
 _SENTENCE_SPLIT_RE = re.compile(r"(?<=[.!?])\s+", re.UNICODE)
 _TOKEN_RE = re.compile(r"[a-z0-9]{3,}", re.IGNORECASE)
+_CITE_RE = re.compile(r"\[(\d+):(\d+)\]")
 
 _REFUSAL = {
     "id": "Saya tidak dapat menjawab permintaan tersebut.",
@@ -130,6 +131,123 @@ class MockLLM(LLMProvider):
         return {"answer": answer, "citations": citations}
 
 
+class MetaModelLLM(LLMProvider):
+    """Meta Model API over OpenAI-compatible chat completions.
+
+    Default model `muse-spark-1.3` (override with META_MODEL, e.g.
+    `muse-spark-1.2`). Docs: https://dev.meta.ai/docs — base URL
+    https://api.meta.ai/v1, Bearer [REDACTED] auth.
+
+    Env: META_API_KEY (required), META_API_URL
+    (default .../v1/chat/completions), META_MODEL, META_MAX_TOKENS
+    (default 1500 — reasoning models spend completion budget on
+    internal reasoning, so this stays generous), META_REASONING_EFFORT
+    (default "low": our task is extractive answering, not deep
+    reasoning), META_TIMEOUT_S (default 45).
+
+    The model receives the masked passage copies only (the agent
+    pre-masks PII before generation), plus strict citation rules. Any
+    transport error, empty content, or malformed response falls back to
+    MockLLM, and the agent still revalidates every citation the model
+    emits against the retrieved passages.
+    """
+
+    name = "meta"
+
+    DEFAULT_URL = "https://api.meta.ai/v1/chat/completions"
+    DEFAULT_MODEL = "muse-spark-1.3"
+
+    _CITATION_RULES = (
+        "Cite every factual claim inline as [doc_id:chunk_idx], using ONLY "
+        "the bracketed source tags given in EVIDENCE below. Never invent a "
+        "citation tag. If the evidence does not answer the question, say so "
+        "in the requested language and suggest contacting the document owner."
+    )
+
+    def __init__(
+        self,
+        api_url: str = "",
+        api_key: str = "",
+        model: str = "",
+        max_tokens: int = 0,
+        reasoning_effort: str = "",
+        timeout_s: float = 0.0,
+    ) -> None:
+        self.api_url = api_url or os.environ.get("META_API_URL", "") or self.DEFAULT_URL
+        self.api_key = api_key or os.environ.get("META_API_KEY", "")
+        self.model = model or os.environ.get("META_MODEL", "") or self.DEFAULT_MODEL
+        self.max_tokens = max_tokens or int(os.environ.get("META_MAX_TOKENS", "1500"))
+        self.reasoning_effort = (
+            reasoning_effort or os.environ.get("META_REASONING_EFFORT", "") or "low"
+        )
+        self.timeout_s = timeout_s or float(os.environ.get("META_TIMEOUT_S", "45"))
+        self._fallback = MockLLM()
+
+    @property
+    def enabled(self) -> bool:
+        return bool(self.api_url and self.api_key)
+
+    def _messages(
+        self, query: str, passages: list[dict], lang: str,
+        conflicts: list[dict] | None = None,
+    ) -> list[dict]:
+        lines = [
+            f"Question ({_lang_key(lang)}): {query}",
+            "",
+            "EVIDENCE ([doc:chunk] tags are the only valid citations):",
+        ]
+        for p in passages[:10]:
+            lines.append(
+                f"[{p.get('doc_id')}:{p.get('chunk_idx', 0)}] "
+                f"({p.get('filename')}, date={p.get('effective_date') or '-'}, "
+                f"authority={p.get('authority') or '-'})"
+            )
+            lines.append((p.get("text") or "").strip())
+            lines.append("")
+        if conflicts:
+            lines.append("Noted source conflicts (mention dates when relevant):")
+            for c in conflicts:
+                lines.append(f"- {c.get('explanation', '')}")
+        return [
+            {"role": "system", "content": SYSTEM_PROMPT + "\n" + self._CITATION_RULES},
+            {"role": "user", "content": "\n".join(lines).strip()},
+        ]
+
+    def generate(
+        self, query: str, passages: list[dict], lang: str = "id",
+        conflicts: list[dict] | None = None,
+    ) -> dict:
+        if not passages or not self.enabled:
+            return self._fallback.generate(query, passages, lang, conflicts)
+        try:
+            import httpx
+
+            resp = httpx.post(
+                self.api_url,
+                json={
+                    "model": self.model,
+                    "messages": self._messages(query, passages, lang, conflicts),
+                    "temperature": 0,
+                    "max_tokens": self.max_tokens,
+                    "reasoning_effort": self.reasoning_effort,
+                },
+                headers={"Authorization": f"Bearer {self.api_key}"},
+                timeout=self.timeout_s,
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            content = (data.get("choices") or [{}])[0].get("message", {}).get("content")
+            if not isinstance(content, str) or not content.strip():
+                raise ValueError("empty content from Meta Model API")
+            cites = [
+                {"doc_id": int(d), "chunk_idx": int(c)}
+                for d, c in _CITE_RE.findall(content)
+            ]
+            return {"answer": content.strip(), "citations": cites}
+        except Exception:
+            return self._fallback.generate(query, passages, lang, conflicts)
+
+
 class OptionalHttpLLM(LLMProvider):
     """Optional remote LLM over HTTP. Disabled unless LLM_API_URL is set.
 
@@ -199,9 +317,14 @@ def refusal_message(lang: str = "id") -> str:
 
 
 def get_provider() -> LLMProvider:
-    """Default MockLLM; HTTP provider only when explicitly configured."""
-    if (os.environ.get("LLM_PROVIDER", "mock") or "mock").lower() == "http":
-        candidate = OptionalHttpLLM()
-        if candidate.enabled:
-            return candidate
+    """Default MockLLM; remote providers only when explicitly configured."""
+    which = (os.environ.get("LLM_PROVIDER", "mock") or "mock").lower()
+    if which == "meta":
+        meta = MetaModelLLM()
+        if meta.enabled:
+            return meta
+    elif which == "http":
+        http = OptionalHttpLLM()
+        if http.enabled:
+            return http
     return MockLLM()

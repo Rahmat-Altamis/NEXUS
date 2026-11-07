@@ -80,7 +80,7 @@ Full per-file map: [data/synthetic/permission_matrix.md](data/synthetic/permissi
 
 ## Limitations
 
-- Mock extractive LLM by default; HTTP LLM is opt-in (`LLM_API_URL`).
+- Mock extractive LLM by default; Meta Model API (`muse-spark-1.3`) via `LLM_PROVIDER=meta` + `META_API_KEY`, or custom HTTP LLM via `LLM_API_URL`. Both fall back to mock on any error.
 - Local hash embeddings default; Chroma optional.
 - No TLS, rate limiting, MFA, key rotation/escrow, or tamper-evident audit.
 - JWT in `localStorage`; heuristic (12-pattern) injection filter.
