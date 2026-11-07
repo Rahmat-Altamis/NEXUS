@@ -134,16 +134,21 @@ class MockLLM(LLMProvider):
 class MetaModelLLM(LLMProvider):
     """Meta Model API over OpenAI-compatible chat completions.
 
-    Default model `muse-spark-1.3` (override with META_MODEL, e.g.
-    `muse-spark-1.2`). Docs: https://dev.meta.ai/docs — base URL
-    https://api.meta.ai/v1, Bearer [REDACTED] auth.
+    Default model `muse-spark-1.3-contributor`: Contributor mode runs the
+    same model at heavily discounted prices (about $0.10 input / $0.20
+    output per 1M tokens vs $1.25 / $4.25 Standard) in exchange for
+    Meta's permission to train on the exchanged content — acceptable
+    here because only masked, authorized, synthetic-demo passages are
+    sent. Use META_MODEL=muse-spark-1.3 to switch back to Standard mode
+    (no training use) for production data. Docs: https://dev.meta.ai/docs
+    — base URL https://api.meta.ai/v1, Bearer [REDACTED] auth.
 
     Env: META_API_KEY (required), META_API_URL
     (default .../v1/chat/completions), META_MODEL, META_MAX_TOKENS
-    (default 1500 — reasoning models spend completion budget on
-    internal reasoning, so this stays generous), META_REASONING_EFFORT
-    (default "low": our task is extractive answering, not deep
-    reasoning), META_TIMEOUT_S (default 45).
+    (default 1000 — reasoning models spend completion budget on
+    internal reasoning, so this stays above observed usage of ~350),
+    META_REASONING_EFFORT (default "low": our task is extractive
+    answering, not deep reasoning), META_TIMEOUT_S (default 45).
 
     The model receives the masked passage copies only (the agent
     pre-masks PII before generation), plus strict citation rules. Any
@@ -155,7 +160,7 @@ class MetaModelLLM(LLMProvider):
     name = "meta"
 
     DEFAULT_URL = "https://api.meta.ai/v1/chat/completions"
-    DEFAULT_MODEL = "muse-spark-1.3"
+    DEFAULT_MODEL = "muse-spark-1.3-contributor"
 
     _CITATION_RULES = (
         "Cite every factual claim inline as [doc_id:chunk_idx], using ONLY "
@@ -176,7 +181,7 @@ class MetaModelLLM(LLMProvider):
         self.api_url = api_url or os.environ.get("META_API_URL", "") or self.DEFAULT_URL
         self.api_key = api_key or os.environ.get("META_API_KEY", "")
         self.model = model or os.environ.get("META_MODEL", "") or self.DEFAULT_MODEL
-        self.max_tokens = max_tokens or int(os.environ.get("META_MAX_TOKENS", "1500"))
+        self.max_tokens = max_tokens or int(os.environ.get("META_MAX_TOKENS", "1000"))
         self.reasoning_effort = (
             reasoning_effort or os.environ.get("META_REASONING_EFFORT", "") or "low"
         )

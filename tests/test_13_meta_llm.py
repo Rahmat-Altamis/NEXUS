@@ -56,7 +56,7 @@ def test_meta_request_shape(monkeypatch):
     out = provider.generate("berapa cuti?", PASSAGES, lang="id")
     assert captured["url"] == "https://api.meta.ai/v1/chat/completions"
     assert captured["headers"] == {"Authorization": f"Bearer {DUMMY_KEY}"}
-    assert captured["json"]["model"] == "muse-spark-1.3"
+    assert captured["json"]["model"] == "muse-spark-1.3-contributor"
     assert captured["json"]["temperature"] == 0
     roles = [m["role"] for m in captured["json"]["messages"]]
     assert roles == ["system", "user"]
@@ -67,13 +67,13 @@ def test_meta_request_shape(monkeypatch):
 
 def test_meta_model_override(monkeypatch):
     def fake_post(url, json=None, headers=None, timeout=None):
-        assert json["model"] == "muse-spark-1.2"
+        assert json["model"] == "muse-spark-1.1"
         return _StubResp({"choices": [{"message": {"content": "ok [7:0]"}}]})
 
     import httpx
 
     monkeypatch.setattr(httpx, "post", fake_post)
-    provider = _provider(monkeypatch, META_MODEL="muse-spark-1.2")
+    provider = _provider(monkeypatch, META_MODEL="muse-spark-1.1")
     assert provider.generate("q", PASSAGES)["answer"].startswith("ok")
 
 
@@ -111,7 +111,7 @@ def test_chat_uses_meta_provider_end_to_end(client, tokens, monkeypatch):
     from conftest import auth
 
     def fake_post(url, json=None, headers=None, timeout=None):
-        assert json["model"] == "muse-spark-1.3"
+        assert json["model"] == "muse-spark-1.3-contributor"
         return _StubResp(
             {"choices": [{"message": {"content": "Rp750.000 [4:0], Rp500.000 [3:0], fiktif [99:9]."}}]}
         )
