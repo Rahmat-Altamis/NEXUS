@@ -2,7 +2,7 @@
 
 Date: 2026-11-07. Dataset: Nusantara Digital Group (all fictitious, no real PII).
 Command: `python -m pytest tests -v` (isolated tmp DB, FastAPI TestClient).
-Result: **33 passed, 0 failed** (27 Phase 6 + 6 post-delivery: multilingual, config, fictional-project).
+Result: **39 passed, 0 failed** (27 Phase 6 + 6 post-delivery + 6 Meta Model API provider, all stubbed).
 
 ## Per-file results
 
@@ -21,6 +21,7 @@ Result: **33 passed, 0 failed** (27 Phase 6 + 6 post-delivery: multilingual, con
 | test_11_multilingual | 3 | 3 | 0 | EN leave/transport queries find ID evidence; ID query ok |
 | test_12_config | 2 | 2 | 0 | default DB absolute + repo-rooted; explicit DATABASE_URL wins |
 | test_05 (added case) | 1 | 1 | 0 | fictional "project Atlantis" -> uncertain, no Komodo/Garuda misattribution |
+| test_13_meta_llm | 6 | 6 | 0 | Muse request shape/model/citations; fallback on error/empty; invented cites dropped end to end |
 
 ## Fixes applied during the run (asserts not weakened)
 
